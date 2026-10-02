@@ -1,7 +1,7 @@
 # Cloudflare Wrangler config. This is the file `wrangler deploy` reads.
 # Keep in sync with cloudflare.toml.
 
-name = "her-namibia"
+name = "her-namibia2"
 main = ".output/server/index.mjs"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
