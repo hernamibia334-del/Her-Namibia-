@@ -1,20 +1,26 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X, Filter, FolderKanban } from "lucide-react";
+import { Filter, FolderKanban, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { Reveal } from "@/components/site/Reveal";
 import { ProjectCard } from "@/components/site/ProjectCard";
+import { ArticleReader } from "@/components/site/ArticleReader";
+import { SearchField } from "@/components/site/SearchField";
 import { WorkUpdate } from "@/components/site/RecentWork";
 import { KEY_SECTORS } from "@/lib/sectors";
+import { matchesSearch } from "@/lib/search";
 
 const TITLE = "Articles | Her Namibia";
 const DESCRIPTION =
   "Read articles and reported stories about remarkable women from across Namibia.";
 
 export const Route = createFileRoute("/projects")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    open: typeof search.open === "string" ? search.open : undefined,
+  }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -41,6 +47,8 @@ async function fetchAllPublishedWork(): Promise<WorkUpdate[]> {
 }
 
 function ProjectsPage() {
+  const { open } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSector, setSelectedSector] = useState<string>("ALL");
 
@@ -48,6 +56,7 @@ function ProjectsPage() {
     queryKey: ["work_updates", "all_published"],
     queryFn: fetchAllPublishedWork,
   });
+  const selectedArticle = data.find((item) => item.id === open) ?? null;
 
   // Filter projects by search term and sector
   const filteredProjects = useMemo(() => {
@@ -59,14 +68,7 @@ function ProjectsPage() {
         if (itemSector !== targetSector) return false;
       }
 
-      // Search term filter
-      if (searchTerm.trim() !== "") {
-        const term = searchTerm.toLowerCase().trim();
-        const matchesTitle = item.title.toLowerCase().includes(term);
-        const matchesDesc = item.description.toLowerCase().includes(term);
-        const matchesSector = (item.sector ?? "").toLowerCase().includes(term);
-        if (!matchesTitle && !matchesDesc && !matchesSector) return false;
-      }
+      if (!matchesSearch(searchTerm, [item.title, item.description, item.sector])) return false;
 
       return true;
     });
@@ -101,26 +103,15 @@ function ProjectsPage() {
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               {/* Search Bar */}
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search articles by title, keyword, or category..."
-                  className="w-full rounded-full border border-input bg-card pl-10 pr-10 py-2.5 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="Clear search"
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
+              <SearchField
+                label="Search articles"
+                value={searchTerm}
+                placeholder="Search articles..."
+                onChange={(value) => {
+                  setSearchTerm(value);
+                  if (open) void navigate({ search: { open: undefined }, replace: true });
+                }}
+              />
 
               {/* Active Filter Counter */}
               <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
@@ -154,7 +145,7 @@ function ProjectsPage() {
                   onClick={() => setSelectedSector("ALL")}
                   className={`rounded-full px-4 py-2 text-xs font-semibold transition-all ${
                     selectedSector === "ALL"
-                      ? "bg-accent text-accent-foreground shadow-sm scale-105"
+                      ? "bg-accent text-accent-foreground shadow-sm"
                       : "border border-border bg-card text-muted-foreground hover:border-accent hover:text-foreground"
                   }`}
                 >
@@ -167,7 +158,7 @@ function ProjectsPage() {
                     onClick={() => setSelectedSector(sector)}
                     className={`rounded-full px-4 py-2 text-xs font-semibold transition-all ${
                       selectedSector === sector
-                        ? "bg-accent text-accent-foreground shadow-sm scale-105"
+                        ? "bg-accent text-accent-foreground shadow-sm"
                         : "border border-border bg-card text-muted-foreground hover:border-accent hover:text-foreground"
                     }`}
                   >
@@ -189,7 +180,7 @@ function ProjectsPage() {
                 ))}
               </div>
             ) : filteredProjects.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-card p-16 text-center shadow-card max-w-xl mx-auto">
+              <div className="mx-auto max-w-xl rounded-2xl border-2 border-dashed border-primary/30 bg-card p-8 text-center shadow-card sm:p-16">
                 <FolderKanban className="mx-auto size-12 text-muted-foreground/60" />
                 <h3 className="mt-4 text-lg font-bold text-foreground">No projects found</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -207,7 +198,10 @@ function ProjectsPage() {
               <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredProjects.map((project, i) => (
                   <Reveal key={project.id} delay={i * 60}>
-                    <ProjectCard project={project} />
+                    <ProjectCard
+                      project={project}
+                      onReadMore={() => void navigate({ search: { open: project.id }, replace: true })}
+                    />
                   </Reveal>
                 ))}
               </div>
@@ -217,6 +211,24 @@ function ProjectsPage() {
       </main>
 
       <Footer />
+
+      <ArticleReader
+        open={Boolean(selectedArticle)}
+        onClose={() => void navigate({ search: { open: undefined }, replace: true })}
+        title={selectedArticle?.title ?? ""}
+        body={selectedArticle?.description ?? ""}
+        date={
+          selectedArticle
+            ? new Date(selectedArticle.work_date).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : undefined
+        }
+        images={selectedArticle?.image_urls ?? []}
+        meta={selectedArticle?.sector ? <span>{selectedArticle.sector}</span> : null}
+      />
     </div>
   );
 }

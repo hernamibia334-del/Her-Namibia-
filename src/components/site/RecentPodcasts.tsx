@@ -3,7 +3,10 @@ import { ArrowRight, Mic, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PODCAST_CATEGORY } from "@/lib/sectors";
 import { unpackEpisodeMeta } from "@/lib/podcast";
+import { truncateWords } from "@/lib/excerpt";
+import { takeLatestByDate } from "@/lib/latest";
 import { Reveal } from "./Reveal";
+import { ReadMoreLink } from "./ReadMoreLink";
 
 export type PodcastEpisode = {
   id: string;
@@ -15,15 +18,17 @@ export type PodcastEpisode = {
   image_urls: string[];
   external_link?: string | null;
   status: string;
+  created_at?: string | null;
 };
 
 export async function fetchPublishedEpisodes(): Promise<PodcastEpisode[]> {
   const { data, error } = await supabase
     .from("news")
-    .select("id,title,summary,content,news_date,sector,category,image_urls,external_link,status")
+    .select("id,title,summary,content,news_date,sector,category,image_urls,external_link,status,created_at")
     .eq("status", "published")
     .eq("category", PODCAST_CATEGORY)
-    .order("news_date", { ascending: false });
+    .order("news_date", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
   return (data ?? []).map((row) => ({
@@ -32,16 +37,23 @@ export async function fetchPublishedEpisodes(): Promise<PodcastEpisode[]> {
   }));
 }
 
-export function EpisodeCard({ episode }: { episode: PodcastEpisode }) {
+export function EpisodeCard({
+  episode,
+  readMoreHref,
+  onReadMore,
+}: {
+  episode: PodcastEpisode;
+  readMoreHref?: string;
+  onReadMore?: () => void;
+}) {
   const { guest, duration } = unpackEpisodeMeta(episode.summary);
+  const { excerpt, truncated } = truncateWords(episode.content);
+  const showReadMore = Boolean(readMoreHref || (onReadMore && truncated));
   const image = episode.image_urls[0];
-  const href = episode.external_link || "/podcast";
 
   return (
-    <a
-      href={href}
-      target={episode.external_link ? "_blank" : undefined}
-      rel={episode.external_link ? "noopener noreferrer" : undefined}
+    <article
+      id={`item-${episode.id}`}
       className="hover-lift group flex h-full flex-col overflow-hidden rounded-xl border-2 border-primary bg-card shadow-card"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-primary/10">
@@ -52,9 +64,17 @@ export function EpisodeCard({ episode }: { episode: PodcastEpisode }) {
             <Mic className="size-10 text-primary-foreground/70" />
           </div>
         )}
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/25 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <PlayCircle className="size-12 text-background" />
-        </div>
+        {episode.external_link && (
+          <a
+            href={episode.external_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute inset-0 flex items-center justify-center bg-primary/25 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            aria-label="Play episode"
+          >
+            <PlayCircle className="size-12 text-background" />
+          </a>
+        )}
         {episode.sector && (
           <span className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-xs font-bold text-primary backdrop-blur-md">
             {episode.sector}
@@ -64,15 +84,20 @@ export function EpisodeCard({ episode }: { episode: PodcastEpisode }) {
       <div className="flex flex-1 flex-col p-6">
         <h3 className="text-lg font-bold text-primary transition-colors group-hover:text-accent">{episode.title}</h3>
         {guest && <p className="mt-1 text-sm font-semibold text-muted-foreground">with {guest}</p>}
-        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{episode.content}</p>
+        <p className="mt-2 text-sm whitespace-pre-line text-muted-foreground">{excerpt}</p>
         {duration && (
           <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
             <Mic className="size-4 text-accent" />
             {duration}
           </p>
         )}
+        {showReadMore && (
+          <div className="mt-auto flex justify-end pt-4">
+            <ReadMoreLink href={readMoreHref} onClick={onReadMore} />
+          </div>
+        )}
       </div>
-    </a>
+    </article>
   );
 }
 
@@ -83,7 +108,7 @@ export function RecentPodcasts() {
   });
 
   const allItems = data ?? [];
-  const latest = allItems.slice(0, 3);
+  const latest = takeLatestByDate(allItems, "news_date");
 
   return (
     <section id="podcast" className="scroll-mt-24 bg-surface py-20 lg:py-28">
@@ -112,7 +137,7 @@ export function RecentPodcasts() {
             <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {latest.map((episode, i) => (
                 <Reveal key={episode.id} delay={i * 90}>
-                  <EpisodeCard episode={episode} />
+                  <EpisodeCard episode={episode} readMoreHref={`/podcast?open=${episode.id}`} />
                 </Reveal>
               ))}
             </div>

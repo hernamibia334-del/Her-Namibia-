@@ -15,7 +15,7 @@ import { Route as NewsRouteImport } from './routes/news'
 import { Route as PodcastRouteImport } from './routes/podcast'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ResourcesRouteImport } from './routes/resources'
-import { Route as StaffAccessCrgRouteImport } from './routes/staff-access-crg'
+import { Route as StaffAccessHerNamibiaRouteImport } from './routes/staff-access-her-namibia'
 import { Route as AuthenticatedHerNamibiaAdminRouteImport } from './routes/_authenticated/HerNamibia-admin'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,9 +47,9 @@ const ResourcesRoute = ResourcesRouteImport.update({
   path: '/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StaffAccessCrgRoute = StaffAccessCrgRouteImport.update({
-  id: '/staff-access-crg',
-  path: '/staff-access-crg',
+const StaffAccessHerNamibiaRoute = StaffAccessHerNamibiaRouteImport.update({
+  id: '/staff-access-her-namibia',
+  path: '/staff-access-her-namibia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedHerNamibiaAdminRoute =
@@ -65,7 +65,7 @@ export interface FileRoutesByFullPath {
   '/podcast': typeof PodcastRoute
   '/projects': typeof ProjectsRoute
   '/resources': typeof ResourcesRoute
-  '/staff-access-crg': typeof StaffAccessCrgRoute
+  '/staff-access-her-namibia': typeof StaffAccessHerNamibiaRoute
   '/HerNamibia-admin': typeof AuthenticatedHerNamibiaAdminRoute
 }
 export interface FileRoutesByTo {
@@ -74,7 +74,7 @@ export interface FileRoutesByTo {
   '/podcast': typeof PodcastRoute
   '/projects': typeof ProjectsRoute
   '/resources': typeof ResourcesRoute
-  '/staff-access-crg': typeof StaffAccessCrgRoute
+  '/staff-access-her-namibia': typeof StaffAccessHerNamibiaRoute
   '/HerNamibia-admin': typeof AuthenticatedHerNamibiaAdminRoute
 }
 export interface FileRoutesById {
@@ -85,7 +85,7 @@ export interface FileRoutesById {
   '/podcast': typeof PodcastRoute
   '/projects': typeof ProjectsRoute
   '/resources': typeof ResourcesRoute
-  '/staff-access-crg': typeof StaffAccessCrgRoute
+  '/staff-access-her-namibia': typeof StaffAccessHerNamibiaRoute
   '/_authenticated/HerNamibia-admin': typeof AuthenticatedHerNamibiaAdminRoute
 }
 export interface FileRouteTypes {
@@ -96,7 +96,7 @@ export interface FileRouteTypes {
     | '/podcast'
     | '/projects'
     | '/resources'
-    | '/staff-access-crg'
+    | '/staff-access-her-namibia'
     | '/HerNamibia-admin'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,7 +105,7 @@ export interface FileRouteTypes {
     | '/podcast'
     | '/projects'
     | '/resources'
-    | '/staff-access-crg'
+    | '/staff-access-her-namibia'
     | '/HerNamibia-admin'
   id:
     | '__root__'
@@ -115,7 +115,7 @@ export interface FileRouteTypes {
     | '/podcast'
     | '/projects'
     | '/resources'
-    | '/staff-access-crg'
+    | '/staff-access-her-namibia'
     | '/_authenticated/HerNamibia-admin'
   fileRoutesById: FileRoutesById
 }
@@ -126,7 +126,7 @@ export interface RootRouteChildren {
   PodcastRoute: typeof PodcastRoute
   ProjectsRoute: typeof ProjectsRoute
   ResourcesRoute: typeof ResourcesRoute
-  StaffAccessCrgRoute: typeof StaffAccessCrgRoute
+  StaffAccessHerNamibiaRoute: typeof StaffAccessHerNamibiaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -173,11 +173,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/staff-access-crg': {
-      id: '/staff-access-crg'
-      path: '/staff-access-crg'
-      fullPath: '/staff-access-crg'
-      preLoaderRoute: typeof StaffAccessCrgRouteImport
+    '/staff-access-her-namibia': {
+      id: '/staff-access-her-namibia'
+      path: '/staff-access-her-namibia'
+      fullPath: '/staff-access-her-namibia'
+      preLoaderRoute: typeof StaffAccessHerNamibiaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/HerNamibia-admin': {
@@ -208,7 +208,7 @@ const rootRouteChildren: RootRouteChildren = {
   PodcastRoute: PodcastRoute,
   ProjectsRoute: ProjectsRoute,
   ResourcesRoute: ResourcesRoute,
-  StaffAccessCrgRoute: StaffAccessCrgRoute,
+  StaffAccessHerNamibiaRoute: StaffAccessHerNamibiaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

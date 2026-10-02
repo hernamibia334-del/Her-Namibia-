@@ -1,4 +1,4 @@
-# Netlify configuration for the CRG Research & Consulting application (TanStack Start + Nitro SSR).
+# Netlify configuration for the Her Namibia application (TanStack Start + Nitro SSR).
 # Nitro is zero-config on Netlify: it emits static assets to `dist` (publish dir) and the SSR
 # serverless function to `.netlify/functions-internal`, which Netlify wires up automatically.
 

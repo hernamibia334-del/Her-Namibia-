@@ -201,17 +201,17 @@ function Index() {
         {/* Hero Section */}
         <section className="relative min-h-screen hero-gradient overflow-hidden">
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
-            <div className="grid min-h-screen grid-cols-1 items-center gap-8 py-20 lg:grid-cols-2 lg:gap-12">
+            <div className="grid min-h-[100svh] grid-cols-1 items-center gap-8 pb-12 pt-28 lg:grid-cols-2 lg:gap-12 lg:py-20">
               {/* Left Content */}
               <div className="flex flex-col justify-center">
-                <p className="animate-fade-up flex items-center gap-4 text-xs font-bold tracking-[0.28em] text-accent uppercase">
-                  <span className="h-px w-12 bg-accent" aria-hidden />
+                <p className="animate-fade-up flex flex-wrap items-center gap-3 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent sm:gap-4 sm:text-xs sm:tracking-[0.28em]">
+                  <span className="hidden h-px w-12 bg-accent sm:block" aria-hidden />
                   Her Story · Her Voice · Her Impact
                 </p>
 
-                <h1 className="animate-fade-up mt-6 text-4xl font-bold leading-[1.05] text-primary lg:text-6xl" style={{ animationDelay: "0.12s" }}>
-                  <span className="block whitespace-nowrap text-[clamp(1.7rem,8vw,3.75rem)]">Every woman has</span>
-                  <span className="mt-2 block text-accent italic font-light">a story worth hearing.</span>
+                <h1 className="animate-fade-up mt-6 text-[clamp(1.85rem,8vw,3.75rem)] font-bold leading-[1.1] text-primary" style={{ animationDelay: "0.12s" }}>
+                  <span className="block">Every woman has</span>
+                  <span className="mt-1 block text-accent italic font-light sm:mt-2">a story worth hearing.</span>
                 </h1>
 
                 <p
@@ -314,7 +314,7 @@ function Index() {
 
           <div className="relative z-10 -mt-[100svh]">
             <div className="flex min-h-svh items-center px-5 py-28 lg:justify-end lg:px-16">
-              <div className="w-full max-w-xl rounded-3xl border border-background/40 bg-background/90 p-8 shadow-lift backdrop-blur-md sm:p-10 lg:max-w-lg xl:max-w-xl">
+              <div className="w-full max-w-xl rounded-3xl border border-background/40 bg-background/90 p-6 shadow-lift backdrop-blur-md sm:p-10 lg:max-w-lg xl:max-w-xl">
                 <span className="text-xs font-bold tracking-[0.2em] text-accent">ABOUT HER NAMIBIA</span>
                 <h2 className="mt-2 text-3xl font-bold text-primary sm:text-4xl">
                   Every Woman Has a Story Worth Hearing
@@ -335,14 +335,14 @@ function Index() {
 
             <div className="flex px-5 lg:justify-end lg:px-16">
             <div className="grid w-full max-w-xl gap-6 sm:grid-cols-2 lg:max-w-2xl">
-              <div className="rounded-3xl border border-background/30 bg-background/88 p-8 shadow-lift backdrop-blur-md">
+              <div className="rounded-3xl border border-background/30 bg-background/88 p-6 shadow-lift backdrop-blur-md sm:p-8">
                 <h3 className="text-lg font-bold text-primary">Our Vision</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                   To become a leading platform where women's voices are heard, their stories
                   are preserved, and their experiences inspire future generations across Africa and beyond.
                 </p>
               </div>
-              <div className="rounded-3xl border border-background/30 bg-background/88 p-8 shadow-lift backdrop-blur-md">
+              <div className="rounded-3xl border border-background/30 bg-background/88 p-6 shadow-lift backdrop-blur-md sm:p-8">
                 <h3 className="text-lg font-bold text-primary">Our Mission</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                   To share honest, meaningful conversations with women from all walks of life,
@@ -402,14 +402,14 @@ function Index() {
               <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Featured Story</h2>
             </Reveal>
 
-            <div className="bg-primary rounded-2xl p-8 lg:p-12 text-primary-foreground">
+            <div className="bg-primary rounded-2xl p-5 text-primary-foreground sm:p-8 lg:p-12">
               <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
                 <Reveal>
                   <div className="relative">
                     <img
                       src={WOMAN_OF_MONTH.image}
                       alt={WOMAN_OF_MONTH.name}
-                      className="h-96 w-full rounded-xl object-cover shadow-lift lg:h-auto"
+                      className="h-64 w-full rounded-xl object-cover shadow-lift sm:h-96 lg:h-auto"
                     />
                   </div>
                 </Reveal>
@@ -447,10 +447,10 @@ function Index() {
           </div>
         </section>
 
+        <RecentNews />
         <RecentWork />
         <RecentPodcasts />
         <RecentResources />
-        <RecentNews />
       </main>
       <Footer />
     </div>

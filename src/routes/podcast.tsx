@@ -1,19 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Mic, Search, X } from "lucide-react";
+import { ExternalLink, Filter, Mic } from "lucide-react";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { Reveal } from "@/components/site/Reveal";
+import { ArticleReader } from "@/components/site/ArticleReader";
 import { EpisodeCard, fetchPublishedEpisodes } from "@/components/site/RecentPodcasts";
+import { SearchField } from "@/components/site/SearchField";
 import { KEY_SECTORS } from "@/lib/sectors";
 import { unpackEpisodeMeta } from "@/lib/podcast";
+import { matchesSearch } from "@/lib/search";
 
 const TITLE = "Podcast | Her Namibia";
 const DESCRIPTION =
   "Listen to Her Namibia conversations with women across business, leadership, health, motherhood, culture, and the next generation.";
 
 export const Route = createFileRoute("/podcast")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    open: typeof search.open === "string" ? search.open : undefined,
+  }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -26,6 +32,8 @@ export const Route = createFileRoute("/podcast")({
 });
 
 function PodcastPage() {
+  const { open } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSector, setSelectedSector] = useState("ALL");
 
@@ -33,18 +41,16 @@ function PodcastPage() {
     queryKey: ["podcast", "all_published"],
     queryFn: fetchPublishedEpisodes,
   });
+  const selectedEpisode = data.find((item) => item.id === open) ?? null;
+  const selectedMeta = selectedEpisode ? unpackEpisodeMeta(selectedEpisode.summary) : null;
 
   const filtered = useMemo(() => {
     return data.filter((item) => {
       if (selectedSector !== "ALL") {
         if ((item.sector ?? "").trim().toLowerCase() !== selectedSector.trim().toLowerCase()) return false;
       }
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase();
-        const { guest } = unpackEpisodeMeta(item.summary);
-        const haystack = `${item.title} ${item.content} ${guest} ${item.sector ?? ""}`.toLowerCase();
-        if (!haystack.includes(term)) return false;
-      }
+      const { guest, duration } = unpackEpisodeMeta(item.summary);
+      if (!matchesSearch(searchTerm, [item.title, item.content, guest, duration, item.sector])) return false;
       return true;
     });
   }, [data, selectedSector, searchTerm]);
@@ -68,26 +74,15 @@ function PodcastPage() {
         <section className="border-b border-border bg-surface py-8">
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search episodes by title, guest, or topic..."
-                  className="w-full rounded-full border border-input bg-card py-2.5 pl-10 pr-10 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="Clear search"
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
+              <SearchField
+                label="Search episodes"
+                value={searchTerm}
+                placeholder="Search episodes..."
+                onChange={(value) => {
+                  setSearchTerm(value);
+                  if (open) void navigate({ search: { open: undefined }, replace: true });
+                }}
+              />
               <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Mic className="size-4 text-accent" />
                 {filtered.length} {filtered.length === 1 ? "Episode" : "Episodes"}
@@ -134,7 +129,7 @@ function PodcastPage() {
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-xl border-2 border-dashed border-primary bg-card p-12 text-center">
+              <div className="rounded-xl border-2 border-dashed border-primary bg-card p-8 text-center sm:p-12">
                 <Mic className="mx-auto mb-3 size-10 text-muted-foreground/50" />
                 <h2 className="text-lg font-bold">No episodes found</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -144,7 +139,11 @@ function PodcastPage() {
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((episode) => (
-                  <EpisodeCard key={episode.id} episode={episode} />
+                  <EpisodeCard
+                    key={episode.id}
+                    episode={episode}
+                    onReadMore={() => void navigate({ search: { open: episode.id }, replace: true })}
+                  />
                 ))}
               </div>
             )}
@@ -152,6 +151,45 @@ function PodcastPage() {
         </section>
       </main>
       <Footer />
+
+      <ArticleReader
+        open={Boolean(selectedEpisode)}
+        onClose={() => void navigate({ search: { open: undefined }, replace: true })}
+        title={selectedEpisode?.title ?? ""}
+        body={selectedEpisode?.content ?? ""}
+        date={
+          selectedEpisode
+            ? new Date(selectedEpisode.news_date).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : undefined
+        }
+        images={selectedEpisode?.image_urls ?? []}
+        meta={
+          selectedEpisode ? (
+            <>
+              {selectedEpisode.sector && <span>{selectedEpisode.sector}</span>}
+              {selectedMeta?.guest && <span>with {selectedMeta.guest}</span>}
+              {selectedMeta?.duration && <span>{selectedMeta.duration}</span>}
+            </>
+          ) : null
+        }
+        footer={
+          selectedEpisode?.external_link ? (
+            <a
+              href={selectedEpisode.external_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+            >
+              <ExternalLink className="size-4" />
+              Listen to episode
+            </a>
+          ) : null
+        }
+      />
     </div>
   );
 }
@@ -171,7 +209,7 @@ function FilterChip({
       onClick={onClick}
       className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-300 ${
         active
-          ? "scale-105 bg-accent text-accent-foreground shadow-sm"
+          ? "bg-accent text-accent-foreground shadow-sm"
           : "border border-border bg-card text-muted-foreground hover:border-accent hover:text-foreground"
       }`}
     >

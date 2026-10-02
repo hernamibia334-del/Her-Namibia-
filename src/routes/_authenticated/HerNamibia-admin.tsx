@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useMemo, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@supabase/supabase-js";
@@ -19,8 +19,6 @@ import {
   ExternalLink,
   Briefcase,
   Mic,
-  Users,
-  Image as ImageIcon,
   UserPlus,
   Mail,
   CheckCircle2,
@@ -35,10 +33,8 @@ import {
   Save,
   Shield,
   Copy,
-  HelpCircle,
   Check,
   Globe,
-  Inbox,
   UserCheck,
   UserX,
   UserMinus,
@@ -63,6 +59,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { KEY_SECTORS, RESOURCE_TYPES, NEWS_CATEGORIES, PODCAST_CATEGORY } from "@/lib/sectors";
 import { PodcastsPanel } from "@/components/admin/PodcastsPanel";
+import { matchesSearch } from "@/lib/search";
 
 const LOGO_URL = "/her-namibia-logo.png";
 const IDLE_MS = 30 * 60 * 1000;
@@ -115,16 +112,6 @@ type NewsItem = {
   image_urls: string[];
   external_link?: string | null;
   status: "draft" | "published";
-};
-
-type EmployeeEmail = {
-  id: string;
-  employee_name: string;
-  email_address: string;
-  department: string | null;
-  position: string | null;
-  status: "active" | "suspended";
-  created_at?: string;
 };
 
 type AdminInvitation = {
@@ -197,7 +184,7 @@ function AdminPortal() {
   const signOut = async () => {
     await supabase.auth.signOut();
     qc.clear();
-    void navigate({ to: "/staff-access-crg" });
+    void navigate({ to: "/staff-access-her-namibia" });
   };
 
   useEffect(() => {
@@ -305,26 +292,23 @@ function AdminPortal() {
 
       <main className="mx-auto max-w-6xl px-5 py-8">
         <Tabs defaultValue="work">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 w-full max-w-5xl">
-            <TabsTrigger value="work" className="flex items-center gap-1.5">
+          <TabsList className="flex h-auto w-full max-w-full justify-start gap-1 overflow-x-auto">
+            <TabsTrigger value="work" className="shrink-0 gap-1.5 text-xs sm:text-sm">
               <Briefcase className="size-3.5" /> Articles
             </TabsTrigger>
-            <TabsTrigger value="resources" className="flex items-center gap-1.5">
+            <TabsTrigger value="resources" className="shrink-0 gap-1.5 text-xs sm:text-sm">
               <FileText className="size-3.5" /> Resources
             </TabsTrigger>
-            <TabsTrigger value="news" className="flex items-center gap-1.5">
-              <Newspaper className="size-3.5" /> News & Updates
+            <TabsTrigger value="news" className="shrink-0 gap-1.5 text-xs sm:text-sm">
+              <Newspaper className="size-3.5" /> News
             </TabsTrigger>
-            <TabsTrigger value="podcast" className="flex items-center gap-1.5">
+            <TabsTrigger value="podcast" className="shrink-0 gap-1.5 text-xs sm:text-sm">
               <Mic className="size-3.5" /> Podcast
             </TabsTrigger>
-            <TabsTrigger value="emails" className="flex items-center gap-1.5">
-              <Users className="size-3.5" /> Contact Emails
+            <TabsTrigger value="admins" className="shrink-0 gap-1.5 text-xs sm:text-sm">
+              <ShieldCheck className="size-3.5" /> Admins
             </TabsTrigger>
-            <TabsTrigger value="admins" className="flex items-center gap-1.5">
-              <ShieldCheck className="size-3.5" /> Manage Admins
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-1.5">
+            <TabsTrigger value="profile" className="shrink-0 gap-1.5 text-xs sm:text-sm">
               <User className="size-3.5" /> Profile
             </TabsTrigger>
           </TabsList>
@@ -340,9 +324,6 @@ function AdminPortal() {
           </TabsContent>
           <TabsContent value="podcast" className="mt-6">
             <PodcastsPanel />
-          </TabsContent>
-          <TabsContent value="emails" className="mt-6">
-            <EmployeeEmailsPanel />
           </TabsContent>
           <TabsContent value="admins" className="mt-6">
             <AdminsPanel />
@@ -511,13 +492,7 @@ function WorkUpdatesPanel() {
         return false;
       }
       // Search filter
-      if (adminSearch.trim() !== "") {
-        const q = adminSearch.toLowerCase().trim();
-        const matchTitle = item.title.toLowerCase().includes(q);
-        const matchDesc = item.description.toLowerCase().includes(q);
-        const matchSector = (item.sector ?? "").toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchSector) return false;
-      }
+      if (!matchesSearch(adminSearch, [item.title, item.description, item.sector])) return false;
       return true;
     });
 
@@ -808,11 +783,6 @@ function WorkUpdatesPanel() {
                         {item.sector}
                       </Badge>
                     )}
-                    {item.image_urls.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        📷 {item.image_urls.length} {item.image_urls.length === 1 ? "image" : "images"}
-                      </span>
-                    )}
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                     {item.work_date} · {item.description}
@@ -892,7 +862,6 @@ function ResourcesPanel() {
             sector: payload.sector || "Business",
             file_url: payload.file_url || null,
             external_url: payload.external_url || null,
-            author: payload.author || null,
             publication_date: payload.publication_date,
             status: payload.status,
           })
@@ -906,7 +875,6 @@ function ResourcesPanel() {
           sector: payload.sector || "Business",
           file_url: payload.file_url || null,
           external_url: payload.external_url || null,
-          author: payload.author || null,
           publication_date: payload.publication_date,
           status: payload.status,
           created_by: userData.user?.id ?? null,
@@ -965,7 +933,6 @@ function ResourcesPanel() {
     const description = String(f.get("description") ?? "").trim();
     const resource_type = String(f.get("resource_type") ?? "Feature");
     const sector = String(f.get("sector") ?? "Business");
-    const author = String(f.get("author") ?? "").trim();
     const external_url = String(f.get("external_url") ?? "").trim();
     const publication_date = String(f.get("publication_date") ?? new Date().toISOString().slice(0, 10));
     const status = String(f.get("status") ?? "draft") as ResourceItem["status"];
@@ -983,7 +950,6 @@ function ResourcesPanel() {
       sector,
       file_url: fileUrl || null,
       external_url: external_url || null,
-      author: author || null,
       publication_date,
       status,
     });
@@ -1000,14 +966,7 @@ function ResourcesPanel() {
         if (item.resource_type !== typeFilter) return false;
       }
       if (!matchesDateFilter(item.publication_date, dateFilter, customStartDate, customEndDate)) return false;
-      if (search.trim() !== "") {
-        const q = search.toLowerCase().trim();
-        const matchTitle = item.title.toLowerCase().includes(q);
-        const matchDesc = item.description.toLowerCase().includes(q);
-        const matchAuthor = (item.author ?? "").toLowerCase().includes(q);
-        const matchType = item.resource_type.toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchAuthor && !matchType) return false;
-      }
+      if (!matchesSearch(search, [item.title, item.description, item.resource_type, item.sector])) return false;
       return true;
     });
 
@@ -1086,11 +1045,7 @@ function ResourcesPanel() {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <Label htmlFor="author">Author / Lead Researcher</Label>
-              <Input id="author" name="author" placeholder="e.g. CRG Advisory Team" defaultValue={editing?.author ?? ""} />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="publication_date">Publication Date</Label>
               <Input
@@ -1170,7 +1125,7 @@ function ResourcesPanel() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search resources by title, author, keyword..."
+                placeholder="Search resources by title, keyword..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="h-9 pl-9 pr-8"
@@ -1320,9 +1275,6 @@ function ResourcesPanel() {
                     <Badge variant="outline" className="text-[11px]">
                       {item.sector}
                     </Badge>
-                  )}
-                  {item.author && (
-                    <span className="text-xs text-muted-foreground">By {item.author}</span>
                   )}
                 </div>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
@@ -1544,14 +1496,7 @@ function NewsPanel() {
         if ((item.category ?? "").trim().toLowerCase() !== categoryFilter.trim().toLowerCase()) return false;
       }
       if (!matchesDateFilter(item.news_date, dateFilter, customStartDate, customEndDate)) return false;
-      if (search.trim() !== "") {
-        const q = search.toLowerCase().trim();
-        const matchTitle = item.title.toLowerCase().includes(q);
-        const matchSummary = (item.summary ?? "").toLowerCase().includes(q);
-        const matchContent = item.content.toLowerCase().includes(q);
-        const matchCat = (item.category ?? "").toLowerCase().includes(q);
-        if (!matchTitle && !matchSummary && !matchContent && !matchCat) return false;
-      }
+      if (!matchesSearch(search, [item.title, item.summary, item.content, item.category, item.sector])) return false;
       return true;
     });
 
@@ -1930,714 +1875,6 @@ function NewsPanel() {
   );
 }
 
-/* ---------------- 4. Employee Emails Panel ---------------- */
-
-const ALPHABET_LETTERS = [
-  "ALL", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
-];
-
-function EmployeeEmailsPanel() {
-  const qc = useQueryClient();
-  const [editing, setEditing] = useState<EmployeeEmail | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [showSetupGuide, setShowSetupGuide] = useState(false);
-  const [formEmail, setFormEmail] = useState("");
-
-  // Filter and sort states
-  const [letterFilter, setLetterFilter] = useState("ALL");
-  const [dateCreatedFilter, setDateCreatedFilter] = useState("ALL");
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"name_asc" | "name_desc" | "date_desc" | "date_asc" | "status" | "dept">("name_asc");
-
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "employee_emails"] });
-
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["admin", "employee_emails"],
-    queryFn: async (): Promise<EmployeeEmail[]> => {
-      const { data, error } = await supabase
-        .from("employee_emails")
-        .select("id,employee_name,email_address,department,position,status,created_at")
-        .order("employee_name", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as EmployeeEmail[];
-    },
-  });
-
-  const save = useMutation({
-    mutationFn: async (
-      payload: Omit<EmployeeEmail, "id"> & { id?: string },
-    ) => {
-      const { error } = await supabase.from("employee_emails").upsert(payload);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(editing ? "Employee record updated." : "Employee record created.");
-      setEditing(null);
-      setCreating(false);
-      setFormEmail("");
-      void invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const toggleStatus = useMutation({
-    mutationFn: async (item: EmployeeEmail) => {
-      const nextStatus = item.status === "active" ? "suspended" : "active";
-      const { error } = await supabase
-        .from("employee_emails")
-        .update({ status: nextStatus })
-        .eq("id", item.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Employee status updated.");
-      void invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("employee_emails").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Employee record deleted.");
-      setDeleteId(null);
-      void invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const employee_name = String(f.get("employee_name") ?? "").trim();
-    const email_address = (formEmail || String(f.get("email_address") ?? "")).trim();
-    if (!employee_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_address)) {
-      toast.error("A name and valid email address are required.");
-      return;
-    }
-    save.mutate({
-      ...(editing ? { id: editing.id } : {}),
-      employee_name,
-      email_address,
-      department: String(f.get("department") ?? "").trim() || null,
-      position: String(f.get("position") ?? "").trim() || null,
-      status: editing?.status ?? "active",
-    });
-  };
-
-  const formOpen = creating || editing !== null;
-
-  // Open form with populated email state
-  const openCreateForm = () => {
-    setCreating(true);
-    setEditing(null);
-    setFormEmail("");
-  };
-
-  const openEditForm = (item: EmployeeEmail) => {
-    setEditing(item);
-    setCreating(false);
-    setFormEmail(item.email_address);
-  };
-
-  const copyToClipboard = (text: string) => {
-    void navigator.clipboard.writeText(text);
-    toast.success(`Copied "${text}" to clipboard.`);
-  };
-
-  // Helper for applying domain suffix
-  const applyDomainSuffix = (suffix: string) => {
-    if (!formEmail.includes("@")) {
-      setFormEmail(`${formEmail}${suffix}`);
-    } else {
-      const prefix = formEmail.split("@")[0];
-      setFormEmail(`${prefix}${suffix}`);
-    }
-  };
-
-  // Filtered & Sorted Employee Emails
-  const filteredData = useMemo(() => {
-    const result = data.filter((item) => {
-      // Initial Letter Filter (First or Last name)
-      if (letterFilter !== "ALL") {
-        const parts = item.employee_name.trim().split(/\s+/);
-        const firstLetterOfFirstName = parts[0]?.[0]?.toUpperCase() ?? "";
-        const firstLetterOfSurname = parts[parts.length - 1]?.[0]?.toUpperCase() ?? "";
-        if (firstLetterOfFirstName !== letterFilter && firstLetterOfSurname !== letterFilter) {
-          return false;
-        }
-      }
-
-      // Date Created Filter
-      if (item.created_at) {
-        if (!matchesDateFilter(item.created_at, dateCreatedFilter, customStartDate, customEndDate)) {
-          return false;
-        }
-      }
-
-      // Search Filter
-      if (search.trim() !== "") {
-        const q = search.toLowerCase().trim();
-        const matchName = item.employee_name.toLowerCase().includes(q);
-        const matchEmail = item.email_address.toLowerCase().includes(q);
-        const matchDept = (item.department ?? "").toLowerCase().includes(q);
-        const matchPos = (item.position ?? "").toLowerCase().includes(q);
-        if (!matchName && !matchEmail && !matchDept && !matchPos) return false;
-      }
-      return true;
-    });
-
-    // Sorting
-    return result.sort((a, b) => {
-      if (sortBy === "name_asc") return a.employee_name.localeCompare(b.employee_name);
-      if (sortBy === "name_desc") return b.employee_name.localeCompare(a.employee_name);
-      if (sortBy === "date_desc") {
-        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
-      }
-      if (sortBy === "date_asc") {
-        return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
-      }
-      if (sortBy === "status") return a.status.localeCompare(b.status);
-      if (sortBy === "dept") return (a.department ?? "").localeCompare(b.department ?? "");
-      return 0;
-    });
-  }, [data, letterFilter, dateCreatedFilter, customStartDate, customEndDate, search, sortBy]);
-
-  return (
-    <div className="space-y-6">
-      {/* ── Header with Hostinger Actions ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-foreground">Employee Directory & Hostinger Emails</h2>
-            <Badge variant="outline" className="border-[#673DE6]/40 bg-[#673DE6]/10 text-[#673DE6] text-[11px] font-semibold">
-              Hostinger Custom Domain
-            </Badge>
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Manage organization email mailboxes on custom domain.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <a
-            href="https://mail.hostinger.com"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex"
-          >
-            <Button
-              size="sm"
-              className="gap-1.5 bg-[#673DE6] hover:bg-[#5229cb] text-white shadow-sm text-xs font-semibold"
-            >
-              <Inbox className="size-3.5" />
-              Open Hostinger Webmail
-              <ExternalLink className="size-3" />
-            </Button>
-          </a>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowSetupGuide(true)}
-            className="gap-1.5 text-xs"
-          >
-            <HelpCircle className="size-3.5 text-muted-foreground" />
-            Email Client Settings
-          </Button>
-
-          {!formOpen && (
-            <Button size="sm" onClick={openCreateForm} className="gap-1.5 text-xs">
-              <Plus className="size-3.5" /> Add Employee
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Add / Edit Employee Form ── */}
-      {formOpen && (
-        <form
-          onSubmit={onSubmit}
-          className="animate-fade-up space-y-4 rounded-xl border-2 border-primary bg-card p-6 shadow-card"
-        >
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h3 className="font-bold text-foreground text-sm">
-              {editing ? `Edit Employee Record: ${editing.employee_name}` : "Add New Employee & Hostinger Mailbox"}
-            </h3>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="employee_name">Full Name *</Label>
-              <Input
-                id="employee_name"
-                name="employee_name"
-                placeholder="e.g. Martha Shikongo"
-                defaultValue={editing?.employee_name ?? ""}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="email_address">Hostinger Email Address *</Label>
-              <Input
-                id="email_address"
-                name="email_address"
-                type="email"
-                placeholder="e.g. m.shikongo@domain.com"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                required
-              />
-              {/* Domain suggestion chips */}
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-muted-foreground">Quick Domain:</span>
-                <button
-                  type="button"
-                  onClick={() => applyDomainSuffix("@crg-research.com")}
-                  className="rounded bg-accent/15 px-2 py-0.5 font-mono text-accent font-semibold hover:bg-accent/25 transition-colors"
-                >
-                  + @crg-research.com
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyDomainSuffix("@crg-research.co.za")}
-                  className="rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground hover:bg-accent/15 hover:text-accent transition-colors"
-                >
-                  + @crg-research.co.za
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                name="department"
-                placeholder="e.g. Research & Advisory"
-                defaultValue={editing?.department ?? ""}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="position">Position / Job Title</Label>
-              <Input
-                id="position"
-                name="position"
-                placeholder="e.g. Senior Economic Analyst"
-                defaultValue={editing?.position ?? ""}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-surface border border-border/80 p-3 text-xs text-muted-foreground flex items-center gap-2">
-            <Globe className="size-4 text-primary shrink-0" />
-            <span>
-              <strong>Note:</strong> Make sure this mailbox is created in your <strong>Hostinger hPanel</strong> (<a href="https://mail.hostinger.com" target="_blank" rel="noreferrer" className="text-accent underline font-medium">mail.hostinger.com</a>) so the employee can receive and send emails.
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? "Saving..." : "Save Record"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setEditing(null);
-                setCreating(false);
-                setFormEmail("");
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {/* ── Search, Date Created & Sort Controls ── */}
-      {!formOpen && data.length > 0 && (
-        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email, department..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 pl-9 pr-8"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="size-3.5 text-muted-foreground" />
-                <Label htmlFor="empDate" className="text-xs shrink-0 font-medium">
-                  Created:
-                </Label>
-                <select
-                  id="empDate"
-                  value={dateCreatedFilter}
-                  onChange={(e) => setDateCreatedFilter(e.target.value)}
-                  className="h-9 rounded-md border border-input bg-background px-2.5 text-xs"
-                >
-                  <option value="ALL">All Dates</option>
-                  <option value="THIS_MONTH">This Month</option>
-                  <option value="LAST_30_DAYS">Past 30 Days</option>
-                  <option value="LAST_90_DAYS">Past 90 Days</option>
-                  <option value="THIS_YEAR">This Year</option>
-                  <option value="CUSTOM">Custom Range...</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <ArrowUpDown className="size-3.5 text-muted-foreground" />
-                <Label htmlFor="empSort" className="text-xs shrink-0 font-medium">
-                  Sort By:
-                </Label>
-                <select
-                  id="empSort"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                  className="h-9 rounded-md border border-input bg-background px-2.5 text-xs"
-                >
-                  <option value="name_asc">Name (A → Z)</option>
-                  <option value="name_desc">Name (Z → A)</option>
-                  <option value="date_desc">Date Created (Newest)</option>
-                  <option value="date_asc">Date Created (Oldest)</option>
-                  <option value="status">Status (Active first)</option>
-                  <option value="dept">Department (A → Z)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {dateCreatedFilter === "CUSTOM" && (
-            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/60 text-xs">
-              <span className="font-semibold text-muted-foreground">From:</span>
-              <Input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="h-8 w-36 text-xs"
-              />
-              <span className="font-semibold text-muted-foreground">To:</span>
-              <Input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="h-8 w-36 text-xs"
-              />
-              {(customStartDate || customEndDate) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs text-destructive"
-                  onClick={() => {
-                    setCustomStartDate("");
-                    setCustomEndDate("");
-                  }}
-                >
-                  Clear Range
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Alphabet Letter Selector for Initial filtering */}
-          <div className="pt-2 border-t border-border/60">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Filter by Initial (First / Last Name):
-              </span>
-              {letterFilter !== "ALL" && (
-                <button
-                  type="button"
-                  onClick={() => setLetterFilter("ALL")}
-                  className="text-[11px] text-accent hover:underline"
-                >
-                  Show All Letters
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {ALPHABET_LETTERS.map((letter) => (
-                <button
-                  key={letter}
-                  type="button"
-                  onClick={() => setLetterFilter(letter)}
-                  className={`size-7 rounded text-xs font-semibold transition-all ${
-                    letterFilter === letter
-                      ? "bg-accent text-accent-foreground shadow-sm scale-110"
-                      : "bg-surface text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  {letter}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      ) : data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No employee records yet.</p>
-      ) : filteredData.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No employee records match your search or filters.</p>
-      ) : (
-        <ul className="space-y-3">
-          {filteredData.map((item) => (
-            <li
-              key={item.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border-2 border-primary bg-card p-5 shadow-card"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-sm font-bold text-foreground">{item.employee_name}</h3>
-                  <Badge variant={item.status === "active" ? "default" : "secondary"}>
-                    {item.status}
-                  </Badge>
-                  {item.department && (
-                    <Badge variant="outline" className="text-[11px]">
-                      {item.department}
-                    </Badge>
-                  )}
-                  {item.created_at && (
-                    <span className="text-[11px] text-muted-foreground">
-                      Added: {new Date(item.created_at).toLocaleDateString("en-GB")}
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  <span className="font-mono text-foreground font-medium flex items-center gap-1">
-                    <Mail className="size-3.5 text-primary" />
-                    {item.email_address}
-                  </span>
-                  {item.position && (
-                    <span>· {item.position}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
-                {/* Copy email */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1 text-xs"
-                  onClick={() => copyToClipboard(item.email_address)}
-                  title="Copy email address"
-                >
-                  <Copy className="size-3.5" />
-                  Copy
-                </Button>
-
-                {/* Send Email Mailto */}
-                <a href={`mailto:${item.email_address}`}>
-                  <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" title="Send email">
-                    <Mail className="size-3.5" />
-                    Email
-                  </Button>
-                </a>
-
-                {/* Suspend / Reactivate */}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => toggleStatus.mutate(item)}
-                >
-                  {item.status === "active" ? "Suspend" : "Reactivate"}
-                </Button>
-
-                {/* Edit */}
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="size-8"
-                  onClick={() => openEditForm(item)}
-                  title="Edit employee record"
-                >
-                  <Pencil className="size-3.5" />
-                </Button>
-
-                {/* Delete */}
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  className="size-8"
-                  onClick={() => setDeleteId(item.id)}
-                  title="Delete employee record"
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* ── Hostinger Connection Settings Modal ── */}
-      <AlertDialog open={showSetupGuide} onOpenChange={setShowSetupGuide}>
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="grid size-9 place-items-center rounded-lg bg-[#673DE6]/10 text-[#673DE6]">
-                <Inbox className="size-5" />
-              </div>
-              <div>
-                <AlertDialogTitle className="text-base font-bold text-foreground">
-                  Hostinger Email Configuration & Client Setup
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-xs">
-                  Connect employee mailboxes to Outlook, Apple Mail, Gmail, iPhone, or Android.
-                </AlertDialogDescription>
-              </div>
-            </div>
-          </AlertDialogHeader>
-
-          <div className="space-y-4 py-2 text-xs">
-            {/* Quick Webmail Access */}
-            <div className="rounded-xl border border-[#673DE6]/30 bg-[#673DE6]/5 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <p className="font-bold text-[#673DE6]">Direct Webmail Login</p>
-                <p className="text-muted-foreground text-[11px] mt-0.5">
-                  Employees can log in with their full email and password anytime.
-                </p>
-              </div>
-              <a
-                href="https://mail.hostinger.com"
-                target="_blank"
-                rel="noreferrer"
-                className="shrink-0"
-              >
-                <Button size="sm" className="bg-[#673DE6] hover:bg-[#5229cb] text-white gap-1.5 text-xs">
-                  <Inbox className="size-3.5" />
-                  Open mail.hostinger.com
-                  <ExternalLink className="size-3" />
-                </Button>
-              </a>
-            </div>
-
-            {/* Server Settings Cards */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              {/* IMAP Incoming */}
-              <div className="rounded-lg border border-border bg-card p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">Incoming Server (IMAP)</span>
-                  <Badge variant="default" className="text-[10px]">Recommended</Badge>
-                </div>
-                <div className="space-y-1 font-mono text-[11px] text-muted-foreground">
-                  <div className="flex justify-between items-center">
-                    <span>Server:</span>
-                    <strong className="text-foreground">imap.hostinger.com</strong>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Port:</span>
-                    <strong className="text-foreground">993</strong>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Encryption:</span>
-                    <strong className="text-foreground">SSL / TLS</strong>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Username:</span>
-                    <strong className="text-foreground">Full email address</strong>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-[11px] gap-1"
-                  onClick={() => copyToClipboard("imap.hostinger.com:993")}
-                >
-                  <Copy className="size-3" /> Copy IMAP Settings
-                </Button>
-              </div>
-
-              {/* SMTP Outgoing */}
-              <div className="rounded-lg border border-border bg-card p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">Outgoing Server (SMTP)</span>
-                  <Badge variant="secondary" className="text-[10px]">Required</Badge>
-                </div>
-                <div className="space-y-1 font-mono text-[11px] text-muted-foreground">
-                  <div className="flex justify-between items-center">
-                    <span>Server:</span>
-                    <strong className="text-foreground">smtp.hostinger.com</strong>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Port:</span>
-                    <strong className="text-foreground">465 (or 587)</strong>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Encryption:</span>
-                    <strong className="text-foreground">SSL / TLS</strong>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Authentication:</span>
-                    <strong className="text-foreground">Same as incoming</strong>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-[11px] gap-1"
-                  onClick={() => copyToClipboard("smtp.hostinger.com:465")}
-                >
-                  <Copy className="size-3" /> Copy SMTP Settings
-                </Button>
-              </div>
-            </div>
-
-            {/* Quick Steps for Devices */}
-            <div className="rounded-lg border border-border bg-surface p-3.5 space-y-1.5 text-muted-foreground">
-              <p className="font-bold text-foreground text-xs">How to add to devices:</p>
-              <ul className="list-disc list-inside space-y-1 text-[11px]">
-                <li><strong>Apple iPhone / iPad:</strong> Go to Settings → Mail → Accounts → Add Account → Other → Add Mail Account.</li>
-                <li><strong>Android / Samsung:</strong> Open Gmail app → Tap Profile icon → Add another account → Other (IMAP).</li>
-                <li><strong>Outlook (Windows / Mac):</strong> File → Add Account → Enter email → Choose IMAP → Enter the Hostinger server details above.</li>
-              </ul>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowSetupGuide(false)}>Close Guide</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Confirm Delete Dialog ── */}
-      <ConfirmDialog
-        open={deleteId !== null}
-        title="Delete this employee record?"
-        description="This permanently removes the record from the directory. Consider suspending instead."
-        onCancel={() => setDeleteId(null)}
-        onConfirm={() => deleteId && remove.mutate(deleteId)}
-      />
-    </div>
-  );
-}
-
 /* ---------------- 5. Admins Panel ---------------- */
 
 function AdminsPanel() {
@@ -2716,7 +1953,7 @@ function AdminsPanel() {
       const notes = (fd.get("notes") as string).trim() || null;
       const fullName = `${firstName} ${lastName}`.trim() || null;
 
-      // ─── EDIT MODE ───
+      // â”€â”€â”€ EDIT MODE â”€â”€â”€
       if (editingAdmin) {
         // 1. Update admin_invitations
         const { error: updateInvError } = await supabase
@@ -2748,7 +1985,7 @@ function AdminsPanel() {
         return { mode: "edit" as const };
       }
 
-      // ─── CREATE MODE ───
+      // â”€â”€â”€ CREATE MODE â”€â”€â”€
       const email = (fd.get("email") as string).trim().toLowerCase();
       const password = (fd.get("password") as string);
       const confirmPassword = (fd.get("confirm_password") as string);
@@ -2762,7 +1999,10 @@ function AdminsPanel() {
 
       // 1. Create client instance with persistSession: false to preserve current session
       const SUPABASE_URL = (import.meta.env["VITE_SUPABASE_URL"] as string) || "";
-      const SUPABASE_PUBLISHABLE_KEY = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string) || "";
+      const SUPABASE_PUBLISHABLE_KEY =
+        (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string) ||
+        (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string) ||
+        "";
       const tempAuthClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
@@ -2953,12 +2193,7 @@ function AdminsPanel() {
   const filtered = useMemo(() => {
     return invitations.filter((inv) => {
       const matchStatus = statusFilter === "ALL" || inv.status === statusFilter;
-      const q = searchQuery.toLowerCase();
-      const matchSearch =
-        !q ||
-        inv.email.toLowerCase().includes(q) ||
-        (inv.full_name ?? "").toLowerCase().includes(q);
-      return matchStatus && matchSearch;
+      return matchStatus && matchesSearch(searchQuery, [inv.email, inv.full_name, inv.notes]);
     });
   }, [invitations, statusFilter, searchQuery]);
 
@@ -3039,7 +2274,7 @@ function AdminsPanel() {
   /* ---------- Render ---------- */
   return (
     <div className="space-y-6">
-      {/* ── Page Header ── */}
+      {/* â”€â”€ Page Header â”€â”€ */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
@@ -3073,7 +2308,7 @@ function AdminsPanel() {
         </Button>
       </div>
 
-      {/* ── Stats Row ── */}
+      {/* â”€â”€ Stats Row â”€â”€ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border-2 border-primary/20 bg-card p-4 text-center shadow-card">
           <p className="text-2xl font-bold text-emerald-600">{counts.active}</p>
@@ -3093,7 +2328,7 @@ function AdminsPanel() {
         </div>
       </div>
 
-      {/* ── Add / Edit Admin Form ── */}
+      {/* â”€â”€ Add / Edit Admin Form â”€â”€ */}
       {showForm && (
         <form
           onSubmit={(e) => {
@@ -3174,7 +2409,7 @@ function AdminsPanel() {
                   disabled={editingAdmin !== null}
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  placeholder="admin@crgresearch.co.za"
+                  placeholder="admin@hernamibia.com"
                   autoComplete="email"
                   className={`pl-9 ${editingAdmin ? "bg-muted cursor-not-allowed text-muted-foreground" : ""}`}
                 />
@@ -3284,7 +2519,7 @@ function AdminsPanel() {
         </form>
       )}
 
-      {/* ── Search & Filter Controls ── */}
+      {/* â”€â”€ Search & Filter Controls â”€â”€ */}
       {!showForm && (
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-sm">
@@ -3340,7 +2575,7 @@ function AdminsPanel() {
         </div>
       )}
 
-      {/* ── Administrators List ── */}
+      {/* â”€â”€ Administrators List â”€â”€ */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="size-7 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -3407,7 +2642,7 @@ function AdminsPanel() {
                       {inv.status === "pending" && (
                         <span className={expired ? "text-destructive" : ""}>
                           {expired
-                            ? "⚠ Expired"
+                            ? "âš  Expired"
                             : `Expires ${formatDate(inv.expires_at)}`}
                         </span>
                       )}
@@ -3479,7 +2714,7 @@ function AdminsPanel() {
         </ul>
       )}
 
-      {/* ── Delete Confirm Dialog ── */}
+      {/* â”€â”€ Delete Confirm Dialog â”€â”€ */}
       <ConfirmDialog
         open={deleteAdmin !== null}
         title="Delete this administrator?"
@@ -3690,7 +2925,7 @@ function ProfilePanel() {
 
   return (
     <div className="space-y-8">
-      {/* ── Top Header Banner with Logged-in Admin Name ── */}
+      {/* â”€â”€ Top Header Banner with Logged-in Admin Name â”€â”€ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
@@ -3708,7 +2943,7 @@ function ProfilePanel() {
         </div>
       </div>
 
-      {/* ── User Overview Card ── */}
+      {/* â”€â”€ User Overview Card â”€â”€ */}
       <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl border-2 border-primary bg-card p-6 shadow-card">
         <div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground shadow-md">
           {initials}
@@ -3741,7 +2976,7 @@ function ProfilePanel() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* ── Card 1: Edit Profile Name ── */}
+        {/* â”€â”€ Card 1: Edit Profile Name â”€â”€ */}
         <form
           onSubmit={handleSaveProfile}
           className="flex flex-col justify-between rounded-2xl border-2 border-primary bg-card p-6 shadow-card space-y-6"
@@ -3811,7 +3046,7 @@ function ProfilePanel() {
           </div>
         </form>
 
-        {/* ── Card 2: Change Password ── */}
+        {/* â”€â”€ Card 2: Change Password â”€â”€ */}
         <form
           onSubmit={handleChangePassword}
           className="flex flex-col justify-between rounded-2xl border-2 border-primary bg-card p-6 shadow-card space-y-6"

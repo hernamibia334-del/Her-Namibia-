@@ -82,7 +82,7 @@ export function Footer() {
           </a>
           <a href="mailto:priscillamukokobi@gmail.com" className="mt-3 flex items-center gap-3 text-sm text-sidebar-foreground/80 transition-colors hover:text-sidebar-foreground">
             <Mail className="size-4 shrink-0 text-sidebar-primary" />
-            priscillamukokobi@gmail.com
+            <span className="min-w-0 break-all">priscillamukokobi@gmail.com</span>
           </a>
         </div>
 

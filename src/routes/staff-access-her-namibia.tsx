@@ -1,14 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Lock, ShieldCheck } from "lucide-react";
+import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const LOCK_KEY = "crg_admin_lock";
+const LOCK_KEY = "her_namibia_admin_lock";
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 5 * 60 * 1000;
 
-export const Route = createFileRoute("/staff-access-crg")({
+export const Route = createFileRoute("/staff-access-her-namibia")({
   ssr: false,
   head: () => ({
     meta: [

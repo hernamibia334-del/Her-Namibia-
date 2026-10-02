@@ -1,18 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X, Filter, FileText, Download, ExternalLink, CalendarDays, User } from "lucide-react";
+import { Filter, FileText, Download, ExternalLink, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { Reveal } from "@/components/site/Reveal";
-import { Badge } from "@/components/ui/badge";
+import { ArticleReader } from "@/components/site/ArticleReader";
+import { ResourceCard, type Resource } from "@/components/site/ResourceCard";
+import { SearchField } from "@/components/site/SearchField";
 import { KEY_SECTORS, RESOURCE_TYPES } from "@/lib/sectors";
+import { matchesSearch } from "@/lib/search";
 
 const TITLE = "Resources & Insights | Her Namibia";
 const DESCRIPTION = "Explore guides, toolkits, and resources for women's empowerment, leadership, and personal growth.";
 
 export const Route = createFileRoute("/resources")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    open: typeof search.open === "string" ? search.open : undefined,
+  }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -23,19 +29,6 @@ export const Route = createFileRoute("/resources")({
   }),
   component: ResourcesPage,
 });
-
-type Resource = {
-  id: string;
-  title: string;
-  description: string;
-  resource_type: string;
-  sector?: string | null;
-  file_url?: string | null;
-  external_url?: string | null;
-  author?: string | null;
-  publication_date: string;
-  status: string;
-};
 
 async function fetchAllPublishedResources(): Promise<Resource[]> {
   const { data, error } = await supabase
@@ -49,6 +42,8 @@ async function fetchAllPublishedResources(): Promise<Resource[]> {
 }
 
 function ResourcesPage() {
+  const { open } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSector, setSelectedSector] = useState<string>("ALL");
   const [selectedType, setSelectedType] = useState<string>("ALL");
@@ -57,6 +52,7 @@ function ResourcesPage() {
     queryKey: ["resources", "all_published"],
     queryFn: fetchAllPublishedResources,
   });
+  const selectedResource = data.find((item) => item.id === open) ?? null;
 
   const filteredResources = useMemo(() => {
     return data.filter((item) => {
@@ -72,15 +68,8 @@ function ResourcesPage() {
         if (item.resource_type !== selectedType) return false;
       }
 
-      // Search term filter
-      if (searchTerm.trim() !== "") {
-        const term = searchTerm.toLowerCase().trim();
-        const matchesTitle = item.title.toLowerCase().includes(term);
-        const matchesDesc = item.description.toLowerCase().includes(term);
-        const matchesAuthor = (item.author ?? "").toLowerCase().includes(term);
-        const matchesSector = (item.sector ?? "").toLowerCase().includes(term);
-        const matchesType = item.resource_type.toLowerCase().includes(term);
-        if (!matchesTitle && !matchesDesc && !matchesAuthor && !matchesSector && !matchesType) return false;
+      if (!matchesSearch(searchTerm, [item.title, item.description, item.sector, item.resource_type])) {
+        return false;
       }
 
       return true;
@@ -120,24 +109,15 @@ function ResourcesPage() {
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               {/* Search input */}
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search resources by title, topic, or keyword..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-full border border-input bg-card py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all shadow-sm"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
+              <SearchField
+                label="Search resources"
+                value={searchTerm}
+                placeholder="Search resources..."
+                onChange={(value) => {
+                  setSearchTerm(value);
+                  if (open) void navigate({ search: { open: undefined }, replace: true });
+                }}
+              />
 
               {/* Counter and Clear Filters */}
               <div className="flex items-center gap-3">
@@ -170,7 +150,7 @@ function ResourcesPage() {
                   onClick={() => setSelectedSector("ALL")}
                   className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-300 ${
                     selectedSector === "ALL"
-                      ? "bg-accent text-accent-foreground shadow-sm scale-105"
+                      ? "bg-accent text-accent-foreground shadow-sm"
                       : "border border-border bg-card text-muted-foreground hover:border-accent hover:text-foreground"
                   }`}
                 >
@@ -183,7 +163,7 @@ function ResourcesPage() {
                     onClick={() => setSelectedSector(sec)}
                     className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-300 ${
                       selectedSector === sec
-                        ? "bg-accent text-accent-foreground shadow-sm scale-105"
+                        ? "bg-accent text-accent-foreground shadow-sm"
                         : "border border-border bg-card text-muted-foreground hover:border-accent hover:text-foreground"
                     }`}
                   >
@@ -241,7 +221,7 @@ function ResourcesPage() {
                 ))}
               </div>
             ) : filteredResources.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-border bg-card p-12 text-center">
+              <div className="rounded-2xl border-2 border-dashed border-border bg-card p-8 text-center sm:p-12">
                 <FileText className="mx-auto size-12 text-muted-foreground/40 mb-3" />
                 <h3 className="text-lg font-bold text-foreground">No resources found</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -261,71 +241,11 @@ function ResourcesPage() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredResources.map((item, i) => (
-                  <Reveal key={item.id} delay={i * 60} as="article">
-                    <article className="hover-lift flex h-full flex-col justify-between overflow-hidden rounded-xl border-2 border-primary bg-card p-6 shadow-card">
-                      <div>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="flex items-center gap-1.5 text-xs font-semibold text-accent">
-                            <CalendarDays className="size-3.5" />
-                            {new Date(item.publication_date).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            <Badge variant="default" className="text-[11px] bg-accent text-accent-foreground">
-                              {item.resource_type}
-                            </Badge>
-                            {item.sector && (
-                              <Badge variant="outline" className="text-[11px]">
-                                {item.sector}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        <h3 className="mt-3.5 text-lg font-bold text-foreground leading-snug">{item.title}</h3>
-
-                        {item.author && (
-                          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                            <User className="size-3.5 text-accent" />
-                            {item.author}
-                          </p>
-                        )}
-
-                        <p className="mt-3 text-sm whitespace-pre-line text-muted-foreground leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
-
-                      {(item.file_url || item.external_url) && (
-                        <div className="mt-6 pt-4 border-t border-border/60 flex items-center gap-4">
-                          {item.file_url && (
-                            <a
-                              href={item.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
-                            >
-                              <Download className="size-3.5" />
-                              Download Document
-                            </a>
-                          )}
-                          {item.external_url && (
-                            <a
-                              href={item.external_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
-                            >
-                              <ExternalLink className="size-3.5" />
-                              External Source
-                            </a>
-                          )}
-                        </div>
-                      )}
-                    </article>
+                  <Reveal key={item.id} delay={i * 60}>
+                    <ResourceCard
+                      item={item}
+                      onReadMore={() => void navigate({ search: { open: item.id }, replace: true })}
+                    />
                   </Reveal>
                 ))}
               </div>
@@ -335,6 +255,58 @@ function ResourcesPage() {
       </main>
 
       <Footer />
+
+      <ArticleReader
+        open={Boolean(selectedResource)}
+        onClose={() => void navigate({ search: { open: undefined }, replace: true })}
+        title={selectedResource?.title ?? ""}
+        body={selectedResource?.description ?? ""}
+        date={
+          selectedResource
+            ? new Date(selectedResource.publication_date).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : undefined
+        }
+        meta={
+          selectedResource ? (
+            <>
+              <span>{selectedResource.resource_type}</span>
+              {selectedResource.sector && <span>{selectedResource.sector}</span>}
+            </>
+          ) : null
+        }
+        footer={
+          selectedResource && (selectedResource.file_url || selectedResource.external_url) ? (
+            <div className="flex flex-wrap gap-4">
+              {selectedResource.file_url && (
+                <a
+                  href={selectedResource.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+                >
+                  <Download className="size-4" />
+                  Download Document
+                </a>
+              )}
+              {selectedResource.external_url && (
+                <a
+                  href={selectedResource.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+                >
+                  <ExternalLink className="size-4" />
+                  External Source
+                </a>
+              )}
+            </div>
+          ) : null
+        }
+      />
     </div>
   );
 }

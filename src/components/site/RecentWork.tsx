@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { takeLatestByDate } from "@/lib/latest";
 import { Reveal } from "./Reveal";
 import { ProjectCard } from "./ProjectCard";
 
@@ -12,14 +13,16 @@ export type WorkUpdate = {
   work_date: string;
   status: string;
   sector?: string | null;
+  created_at?: string | null;
 };
 
 async function fetchPublishedWork(): Promise<WorkUpdate[]> {
   const { data, error } = await supabase
     .from("work_updates")
-    .select("id,title,description,image_urls,work_date,status,sector")
+    .select("id,title,description,image_urls,work_date,status,sector,created_at")
     .eq("status", "published")
-    .order("work_date", { ascending: false });
+    .order("work_date", { ascending: false })
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => ({
     ...row,
@@ -34,8 +37,7 @@ export function RecentWork() {
   });
 
   const allItems = data ?? [];
-  // Only the latest 3 updates are displayed on the main website homepage
-  const latestThreeItems = allItems.slice(0, 3);
+  const latestThreeItems = takeLatestByDate(allItems, "work_date");
 
   return (
     <section id="work" className="bg-surface py-20 lg:py-28">
@@ -65,7 +67,7 @@ export function RecentWork() {
             <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {latestThreeItems.map((item, i) => (
                 <Reveal key={item.id} delay={i * 90}>
-                  <ProjectCard project={item} />
+                  <ProjectCard project={item} readMoreHref={`/projects?open=${item.id}`} />
                 </Reveal>
               ))}
             </div>

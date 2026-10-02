@@ -41,6 +41,13 @@ export function Navbar() {
     setMobilePortfolioOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   const isTransparent = isHome && !scrolled;
 
   return (
@@ -48,8 +55,8 @@ export function Navbar() {
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-all duration-500",
         isTransparent
-          ? "bg-transparent py-1"
-          : "bg-background/95 shadow-card backdrop-blur-md border-b border-border/40 py-0.5",
+          ? "bg-transparent py-1 pt-[max(0.25rem,env(safe-area-inset-top))]"
+          : "bg-background/95 shadow-card backdrop-blur-md border-b border-border/40 py-0.5 pt-[max(0.125rem,env(safe-area-inset-top))]",
       )}
     >
       <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 lg:px-8">
@@ -153,8 +160,10 @@ export function Navbar() {
       {/* Mobile menu */}
       <div
         className={cn(
-          "overflow-hidden border-t border-border bg-background/98 backdrop-blur-md transition-[max-height,opacity] duration-500 lg:hidden",
-          open ? "max-h-[40rem] opacity-100" : "max-h-0 opacity-0",
+          "border-t border-border bg-background/98 backdrop-blur-md transition-[max-height,opacity] duration-500 lg:hidden",
+          open
+            ? "max-h-[min(40rem,calc(100dvh-5rem))] overflow-y-auto opacity-100"
+            : "max-h-0 overflow-hidden opacity-0",
         )}
       >
         <nav className="flex flex-col gap-1 px-5 py-4">

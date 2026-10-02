@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mic, Pencil, Plus, Trash2 } from "lucide-react";
+import { Mic, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { KEY_SECTORS, PODCAST_CATEGORY } from "@/lib/sectors";
 import { packEpisodeMeta, unpackEpisodeMeta } from "@/lib/podcast";
+import { matchesSearch } from "@/lib/search";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 5;
 
@@ -43,6 +44,7 @@ export function PodcastsPanel() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin", "podcast"],
@@ -162,6 +164,14 @@ export function PodcastsPanel() {
   const guestDefault = unpackEpisodeMeta(editing?.summary);
 
   const publishedCount = useMemo(() => data.filter((item) => item.status === "published").length, [data]);
+  const filtered = useMemo(
+    () =>
+      data.filter((item) => {
+        const { guest, duration } = unpackEpisodeMeta(item.summary);
+        return matchesSearch(search, [item.title, item.content, guest, duration, item.sector, item.status]);
+      }),
+    [data, search],
+  );
 
   return (
     <div className="space-y-6">
@@ -271,8 +281,17 @@ export function PodcastsPanel() {
 
       {!formOpen && (
         <div className="space-y-3">
+          <div className="relative max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search episodes by title, guest, or topic..."
+              className="h-9 pl-9"
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
-            {data.length} episodes · {publishedCount} published
+            {filtered.length} of {data.length} episodes · {publishedCount} published
           </p>
           {isLoading ? (
             <div className="h-24 animate-pulse rounded-xl bg-muted" />
@@ -281,8 +300,10 @@ export function PodcastsPanel() {
               <Mic className="mx-auto mb-2 size-8 text-muted-foreground/50" />
               <p className="text-sm text-muted-foreground">No episodes yet. Add the first one above.</p>
             </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No episodes match your search.</p>
           ) : (
-            data.map((item) => {
+            filtered.map((item) => {
               const { guest, duration } = unpackEpisodeMeta(item.summary);
               return (
                 <article key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">

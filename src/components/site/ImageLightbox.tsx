@@ -1,5 +1,6 @@
-import { useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ImageLightboxProps {
@@ -52,9 +53,9 @@ export function ImageLightbox({
     };
   }, [isOpen, onClose, handlePrev, handleNext]);
 
-  if (!isOpen || !currentImage) return null;
+  if (!isOpen || !currentImage || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex flex-col bg-black/95 text-white backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
       onClick={onClose}
@@ -64,27 +65,38 @@ export function ImageLightbox({
     >
       {/* Top Controls Bar */}
       <div
-        className="flex shrink-0 items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent"
+        className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4 bg-gradient-to-b from-black/80 to-transparent"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3">
-          <Maximize2 className="size-5 text-accent" />
-          {title && <span className="max-w-xs truncate text-sm font-semibold sm:max-w-md">{title}</span>}
+        {title ? (
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</span>
+        ) : (
+          <span className="flex-1" />
+        )}
+
+        <div className="flex shrink-0 items-center gap-2">
           {images.length > 1 && (
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-              {currentIndex + 1} of {images.length}
+            <span
+              className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-white/15 px-2.5 text-[11px] font-semibold tabular-nums leading-none tracking-wide backdrop-blur-sm sm:h-auto sm:px-3 sm:py-1 sm:text-xs sm:font-medium"
+              aria-label={`Image ${currentIndex + 1} of ${images.length}`}
+            >
+              <span className="sm:hidden">
+                {currentIndex + 1} / {images.length}
+              </span>
+              <span className="hidden sm:inline">
+                {currentIndex + 1} of {images.length}
+              </span>
             </span>
           )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-accent"
+            aria-label="Close fullscreen view"
+          >
+            <X className="size-6" />
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-accent"
-          aria-label="Close fullscreen view"
-        >
-          <X className="size-6" />
-        </button>
       </div>
 
       {/* Main Image Container */}
@@ -97,10 +109,10 @@ export function ImageLightbox({
           <button
             type="button"
             onClick={handlePrev}
-            className="absolute left-4 z-10 grid size-12 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md transition-all hover:bg-black/80 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-accent sm:left-8"
+            className="absolute left-2 z-10 grid size-10 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md transition-all hover:bg-black/80 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-accent sm:left-8 sm:size-12"
             aria-label="Previous image"
           >
-            <ChevronLeft className="size-7" />
+            <ChevronLeft className="size-6 sm:size-7" />
           </button>
         )}
 
@@ -108,7 +120,7 @@ export function ImageLightbox({
         <img
           src={currentImage}
           alt={title ? `${title} - Image ${currentIndex + 1}` : `Fullscreen image ${currentIndex + 1}`}
-          className="max-h-[78vh] max-w-[92vw] object-contain rounded-lg shadow-2xl transition-all duration-300"
+          className="max-h-[min(78vh,calc(100dvh-12rem))] max-w-[min(92vw,100%)] object-contain rounded-lg shadow-2xl transition-all duration-300"
         />
 
         {/* Next Button */}
@@ -116,10 +128,10 @@ export function ImageLightbox({
           <button
             type="button"
             onClick={handleNext}
-            className="absolute right-4 z-10 grid size-12 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md transition-all hover:bg-black/80 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-accent sm:right-8"
+            className="absolute right-2 z-10 grid size-10 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md transition-all hover:bg-black/80 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-accent sm:right-8 sm:size-12"
             aria-label="Next image"
           >
-            <ChevronRight className="size-7" />
+            <ChevronRight className="size-6 sm:size-7" />
           </button>
         )}
       </div>
@@ -127,7 +139,7 @@ export function ImageLightbox({
       {/* Bottom Thumbnails Strip */}
       {images.length > 1 && (
         <div
-          className="flex shrink-0 items-center justify-center gap-2 overflow-x-auto p-4 bg-gradient-to-t from-black/80 to-transparent"
+          className="flex shrink-0 items-center justify-start gap-2 overflow-x-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent sm:justify-center"
           onClick={(e) => e.stopPropagation()}
         >
           {images.map((img, idx) => (
@@ -151,6 +163,7 @@ export function ImageLightbox({
           ))}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -221,12 +221,20 @@
 
   html {
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  img,
+  video,
+  iframe {
+    max-width: 100%;
   }
 
   h1,
